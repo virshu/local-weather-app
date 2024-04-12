@@ -48,3 +48,4 @@ cypress/videos
 cypress/screenshots
 coverage
 test_results
+projects/stage5/src/environments/environment.ts

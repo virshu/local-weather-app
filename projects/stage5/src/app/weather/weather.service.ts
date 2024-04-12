@@ -33,7 +33,10 @@ export class WeatherService implements IWeatherService {
     country?: string): Observable<ICurrentWeather> {
     let uriParams = new HttpParams();
     if (isNaN(Number(search))) {
-      uriParams = uriParams.set('q', `${search},${country}`);
+      if (country) {
+        search += `,${country}`;
+      }
+      uriParams = uriParams.set('q', `${search}`);
     } else {
       uriParams = uriParams.set('zip', search);
     }
@@ -58,7 +61,7 @@ private getCurrentWeatherHelper(uriParams: HttpParams):
     uriParams = uriParams.set('appid', environment.appId)
     return this.httpClient
       .get<ICurrentWeatherData>(
-        `${environment.baseUrl}api.openweathermap.org/data/2.5/weather`,
+        'https://api.openweathermap.org/data/2.5/weather',
         { params: uriParams }
       )
       .pipe(map(
