@@ -4,5 +4,5 @@
 
 export const environment = {
   production: false,
-  appId: ''
+  appId: '6a6a8c58d9b2210e5f16f9f0950801f5'
 }
