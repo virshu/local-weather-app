@@ -1,43 +1,38 @@
 import { HttpClient, HttpParams } from '@angular/common/http'
 import { Injectable } from '@angular/core'
-import { Observable } from 'rxjs'
+import { BehaviorSubject, Observable } from 'rxjs'
 import { map } from 'rxjs/operators'
+import { ICurrentWeatherData } from 'src/app/weather/weather.service'
 
 import { environment } from '../../environments/environment'
 import { ICurrentWeather } from '../interfaces'
 
-interface ICurrentWeatherData {
-  weather: [
-    {
-      description: string
-      icon: string
-    },
-  ]
-  main: {
-    temp: number
-  }
-  sys: {
-    country: string
-  }
-  dt: number
-  name: string
-}
-
 export interface IWeatherService {
   getCurrentWeather(city: string, country: string): Observable<ICurrentWeather>;
   getCurrentWeatherByCoords(coords: GeolocationCoordinates): Observable<ICurrentWeather>;
+  updateCurrentWeather(city: string, country: string): void;
 }
 
 @Injectable({
   providedIn: 'root',
 })
 export class WeatherService implements IWeatherService {
+  readonly currentWeather$: BehaviorSubject<ICurrentWeather> =
+  new BehaviorSubject<ICurrentWeather>({
+    city: '--',
+    country: '--',
+    date: Date.now(),
+    image: '',
+    temperature: 0,
+    description: ''
+  });
+
   constructor(private httpClient: HttpClient) {}
 
   getCurrentWeather(search: string | number,
     country?: string): Observable<ICurrentWeather> {
     let uriParams = new HttpParams();
-    if (typeof search === 'string') {
+    if (isNaN(Number(search))) {
       uriParams = uriParams.set('q', `${search},${country}`);
     } else {
       uriParams = uriParams.set('zip', search);
@@ -52,6 +47,11 @@ export class WeatherService implements IWeatherService {
         .set('lon', coords.longitude.toString())
     return this.getCurrentWeatherHelper(uriParams)
   }
+
+  updateCurrentWeather(search: string | number,
+    country?: string): void {
+      this.getCurrentWeather(search, country).subscribe(weather => this.currentWeather$.next(weather));
+    }
 
 private getCurrentWeatherHelper(uriParams: HttpParams):
   Observable<ICurrentWeather> {
