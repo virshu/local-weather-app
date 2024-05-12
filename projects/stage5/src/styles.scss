@@ -29,6 +29,21 @@ $local-weather-app-theme: mat.define-light-theme(
   )
 );
 
+// create a dark theme
+$local-weather-app-dark-theme: mat.define-dark-theme(
+  (
+    color: (
+      primary: $local-weather-app-primary,
+      accent: $local-weather-app-accent,
+      warn: $local-weather-app-warn,
+    ),
+  )
+);
+
+.dark-theme {
+  @include mat.all-component-colors($local-weather-app-dark-theme);
+}
+
 // Include theme styles for core and each component used in your app.
 // Alternatively, you can import and @include the theme mixins for each component
 // that you are using.
