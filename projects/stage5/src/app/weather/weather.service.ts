@@ -1,16 +1,18 @@
 import { HttpClient, HttpParams } from '@angular/common/http'
 import { Injectable } from '@angular/core'
 import { BehaviorSubject, Observable } from 'rxjs'
-import { map } from 'rxjs/operators'
+import { map, switchMap } from 'rxjs/operators'
 import { ICurrentWeatherData } from 'src/app/weather/weather.service'
 
 import { environment } from '../../environments/environment'
 import { ICurrentWeather } from '../interfaces'
+import { PostalCodeService } from '../postal-code/postal-code.service'
 
 export interface IWeatherService {
-  getCurrentWeather(city: string, country: string): Observable<ICurrentWeather>;
+  readonly currentWeather$: BehaviorSubject<ICurrentWeather>;
+  getCurrentWeather(search: string, country?: string): Observable<ICurrentWeather>;
   getCurrentWeatherByCoords(coords: GeolocationCoordinates): Observable<ICurrentWeather>;
-  updateCurrentWeather(city: string, country: string): void;
+  updateCurrentWeather(search: string, country?: string): void;
 }
 
 @Injectable({
@@ -27,21 +29,28 @@ export class WeatherService implements IWeatherService {
     description: ''
   });
 
-  constructor(private httpClient: HttpClient) {}
+  constructor(private httpClient: HttpClient, private postalCodeService: PostalCodeService) {}
 
-  getCurrentWeather(search: string | number,
-    country?: string): Observable<ICurrentWeather> {
-    let uriParams = new HttpParams();
-    if (isNaN(Number(search))) {
-      if (country) {
-        search += `,${country}`;
-      }
-      uriParams = uriParams.set('q', `${search}`);
-    } else {
-      uriParams = uriParams.set('zip', search);
-    }
-
-    return this.getCurrentWeatherHelper(uriParams);
+  getCurrentWeather(search: string, country?: string): Observable<ICurrentWeather> {
+    return this.postalCodeService.resolvePostalCode(search)
+      .pipe(switchMap(postalCode => {
+        if (postalCode) {
+          return this.getCurrentWeatherByCoords({
+            latitude: postalCode.lat,
+            longitude: postalCode.lng,
+            accuracy: 0,
+            altitude: null,
+            altitudeAccuracy: null,
+            heading: null,
+            speed: null
+          } )
+        } else {
+          const uriParams = new HttpParams().set(
+            'q', country ? `${search},${country}` : search
+          );
+          return this.getCurrentWeatherHelper(uriParams);
+        }
+      }));
   }
 
   getCurrentWeatherByCoords(coords: GeolocationCoordinates): Observable<ICurrentWeather> {
@@ -51,10 +60,9 @@ export class WeatherService implements IWeatherService {
     return this.getCurrentWeatherHelper(uriParams)
   }
 
-  updateCurrentWeather(search: string | number,
-    country?: string): void {
-      this.getCurrentWeather(search, country).subscribe(weather => this.currentWeather$.next(weather));
-    }
+  updateCurrentWeather(search: string, country?: string): void {
+    this.getCurrentWeather(search, country).subscribe(weather => this.currentWeather$.next(weather));
+  }
 
 private getCurrentWeatherHelper(uriParams: HttpParams):
   Observable<ICurrentWeather> {
